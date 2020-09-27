@@ -11,6 +11,8 @@ import (
 	"net/mail"
 	"strings"
 	"time"
+
+	cs "golang.org/x/net/html/charset"
 )
 
 const contentTypeMultipartMixed = "multipart/mixed"
@@ -37,7 +39,7 @@ func Parse(r io.Reader) (email Email, err error) {
 		return
 	}
 
-	encoding := msg.Header.Get("Content-Transfer-Encoding")
+	encoding := strings.ToLower(msg.Header.Get("Content-Transfer-Encoding"))
 
 	switch contentType {
 	case contentTypeMultipartMixed:
@@ -48,11 +50,11 @@ func Parse(r io.Reader) (email Email, err error) {
 		email.TextBody, email.HTMLBody, email.EmbeddedFiles, err = parseMultipartRelated(msg.Body, params["boundary"])
 	case contentTypeTextPlain:
 		var message []byte
-		message, err = readAllDecode(msg.Body, encoding)
+		message, err = readAllDecode(msg.Body, encoding, email.ContentType)
 		email.TextBody = strings.TrimSuffix(string(message[:]), "\n")
 	case contentTypeTextHtml:
 		var message []byte
-		message, err = readAllDecode(msg.Body, encoding)
+		message, err = readAllDecode(msg.Body, encoding, email.ContentType)
 		email.HTMLBody = strings.TrimSuffix(string(message[:]), "\n")
 	default:
 		email.Content, err = decodeContent(msg.Body, encoding)
@@ -127,14 +129,14 @@ func parseMultipartRelated(msg io.Reader, boundary string) (textBody, htmlBody s
 
 		switch contentType {
 		case contentTypeTextPlain:
-			ppContent, err := readAllDecode(part, encoding)
+			ppContent, err := readAllDecode(part, encoding, part.Header.Get("Content-Type"))
 			if err != nil {
 				return textBody, htmlBody, embeddedFiles, err
 			}
 
 			textBody += strings.TrimSuffix(string(ppContent[:]), "\n")
 		case contentTypeTextHtml:
-			ppContent, err := readAllDecode(part, encoding)
+			ppContent, err := readAllDecode(part, encoding, part.Header.Get("Content-Type"))
 			if err != nil {
 				return textBody, htmlBody, embeddedFiles, err
 			}
@@ -186,14 +188,14 @@ func parseMultipartAlternative(msg io.Reader, boundary string) (textBody, htmlBo
 
 		switch contentType {
 		case contentTypeTextPlain:
-			ppContent, err := readAllDecode(part, encoding)
+			ppContent, err := readAllDecode(part, encoding, part.Header.Get("Content-Type"))
 			if err != nil {
 				return textBody, htmlBody, embeddedFiles, err
 			}
 
 			textBody += strings.TrimSuffix(string(ppContent[:]), "\n")
 		case contentTypeTextHtml:
-			ppContent, err := readAllDecode(part, encoding)
+			ppContent, err := readAllDecode(part, encoding, part.Header.Get("Content-Type"))
 			if err != nil {
 				return textBody, htmlBody, embeddedFiles, err
 			}
@@ -253,14 +255,14 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 		} else if contentType == contentTypeTextPlain {
-			ppContent, err := readAllDecode(part, encoding)
+			ppContent, err := readAllDecode(part, encoding, part.Header.Get("Content-Type"))
 			if err != nil {
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 
 			textBody += strings.TrimSuffix(string(ppContent[:]), "\n")
 		} else if contentType == contentTypeTextHtml {
-			ppContent, err := readAllDecode(part, encoding)
+			ppContent, err := readAllDecode(part, encoding, part.Header.Get("Content-Type"))
 			if err != nil {
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
@@ -354,13 +356,18 @@ func decodeAttachment(part *multipart.Part) (at Attachment, err error) {
 	return
 }
 
-func readAllDecode(content io.Reader, encoding string) ([]byte, error) {
+func readAllDecode(content io.Reader, encoding, contentType string) ([]byte, error) {
 	r, err := decodeContent(content, encoding)
 	if err != nil {
 		return nil, err
 	}
 
-	return ioutil.ReadAll(r)
+	cr, err := cs.NewReader(r, contentType)
+	if err != nil {
+		return nil, err
+	}
+
+	return ioutil.ReadAll(cr)
 }
 
 func decodeContent(content io.Reader, encoding string) (io.Reader, error) {
@@ -380,7 +387,7 @@ func decodeContent(content io.Reader, encoding string) (io.Reader, error) {
 		}
 
 		return bytes.NewReader(dd), nil
-	case "", "quoted-printable":
+	case "", "8bit", "quoted-printable":
 		return content, nil
 	default:
 		return nil, fmt.Errorf("unknown encoding: %s", encoding)
