@@ -284,6 +284,9 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 			attachments = append(attachments, at)
+			if strings.Contains(contentType, "application") {
+				continue
+			}
 		}
 
 		if contentType == contentTypeMultipartAlternative {
