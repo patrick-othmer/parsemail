@@ -481,6 +481,35 @@ So, "Hello".`,
 				},
 			},
 		},
+		17: {
+			contentType: "multipart/signed; protocol=\"application/pkcs7-signature\"; micalg=sha256; boundary=\"B_3664435388_2009730824\"",
+			mailData: signed,
+			subject:  "Test 2",
+			messageID: "67C6E9AC-B070-4EE2-8BB1-3ACC4B042A5F@local.lan",
+			from: []mail.Address{
+				{
+					Name:    "Test",
+					Address: "test@local.lan",
+				},
+			},
+			to: []mail.Address{
+				{
+					Name:    "Test 2",
+					Address: "test2@local.lan",
+				},
+			},
+			date:       parseDate("Wed, 13 Feb 2020 09:30:09 +0000"),
+			textBody: `Okeh`,
+			htmlBody: `<html><head></head><body>Test</body></html>`,
+			attachments: []attachmentData{
+				{
+					filename:  "smime.p7s",
+					contentType: "application/pkcs7-signature",
+					data:  "test",
+				},
+			},
+		},
+
 	}
 
 	for index, td := range testData {
@@ -1132,4 +1161,47 @@ Content-Transfer-Encoding: quoted-printable
 --B_3664448610_676713694--
 
 --_004_9D478DE2B90C4D018C093E6CE5A5BD28--
+`
+
+var signed = `From: Test <test@local.lan>
+To: Test 2 <test2@local.lan>
+Subject: Test 2
+Date: Thu, 13 Feb 2020 09:30:09 +0000
+Message-ID: <67C6E9AC-B070-4EE2-8BB1-3ACC4B042A5F@local.lan>
+Content-type: multipart/signed;
+	protocol="application/pkcs7-signature";
+	micalg=sha256;
+	boundary="B_3664435388_2009730824"
+MIME-Version: 1.0
+
+--B_3664435388_2009730824
+Content-type: multipart/alternative;
+	boundary="B_3664435388_1494779721"
+
+
+--B_3664435388_1494779721
+Content-type: text/plain;
+	charset="UTF-8"
+Content-transfer-encoding: quoted-printable
+
+Okeh
+
+--B_3664435388_1494779721
+Content-type: text/html;
+	charset="UTF-8"
+Content-transfer-encoding: quoted-printable
+
+<html><head></head><body>Test</body></html>
+
+--B_3664435388_1494779721--
+
+--B_3664435388_2009730824
+Content-type: application/pkcs7-signature; name="smime.p7s"
+Content-transfer-encoding: base64
+Content-disposition: attachment;
+	filename="smime.p7s"
+
+dGVzdA==
+
+--B_3664435388_2009730824--
 `

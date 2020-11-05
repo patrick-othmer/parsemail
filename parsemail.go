@@ -18,6 +18,7 @@ import (
 
 const contentTypeMultipartMixed = "multipart/mixed"
 const contentTypeMultipartAlternative = "multipart/alternative"
+const contentTypeMultipartSigned = "multipart/signed"
 const contentTypeMultipartRelated = "multipart/related"
 const contentTypeTextHtml = "text/html"
 const contentTypeTextPlain = "text/plain"
@@ -43,7 +44,7 @@ func Parse(r io.Reader) (email Email, err error) {
 	encoding := strings.ToLower(msg.Header.Get("Content-Transfer-Encoding"))
 
 	switch contentType {
-	case contentTypeMultipartMixed:
+	case contentTypeMultipartMixed, contentTypeMultipartSigned:
 		email.TextBody, email.HTMLBody, email.Attachments, email.EmbeddedFiles, err = parseMultipartMixed(msg.Body, params["boundary"])
 	case contentTypeMultipartAlternative:
 		email.TextBody, email.HTMLBody, email.EmbeddedFiles, err = parseMultipartAlternative(msg.Body, params["boundary"])
