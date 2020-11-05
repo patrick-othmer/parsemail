@@ -346,7 +346,7 @@ func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
 }
 
 func isAttachment(part *multipart.Part) bool {
-	if  part.Header.Get("Content-Type") == "message/rfc822" {
+	if part.Header.Get("Content-Type") == "message/rfc822" {
 		return true
 	}
 
@@ -355,7 +355,7 @@ func isAttachment(part *multipart.Part) bool {
 
 func decodeAttachment(part *multipart.Part) (at Attachment, err error) {
 	filename := ""
-	if  part.Header.Get("Content-Type") == "message/rfc822" {
+	if part.Header.Get("Content-Type") == "message/rfc822" {
 		filename = strings.Trim(decodeMimeSentence(part.Header.Get("Content-Id")), "<>") + ".eml"
 	} else {
 		filename = decodeMimeSentence(part.FileName())

@@ -454,10 +454,10 @@ So, "Hello".`,
 			textBody:  "👍",
 		},
 		16: {
-			mailData: rfc822,
+			mailData:    rfc822,
 			contentType: "multipart/mixed; boundary=\"_004_9D478DE2B90C4D018C093E6CE5A5BD28\"",
-			subject:  "Test 1",
-			messageID: "9D478DE2-B90C-4D01-8C09-3E6CE5A5BD28@test.lan",
+			subject:     "Test 1",
+			messageID:   "9D478DE2-B90C-4D01-8C09-3E6CE5A5BD28@test.lan",
 			from: []mail.Address{
 				{
 					Name:    "Test",
@@ -470,22 +470,22 @@ So, "Hello".`,
 					Address: "test2@test.lan",
 				},
 			},
-			date:       parseDate("Wed, 13 Feb 2020 13:39:30 +0000"),
+			date:     parseDate("Wed, 13 Feb 2020 13:39:30 +0000"),
 			textBody: `test body`,
 			htmlBody: `<html><head></head><body>test body</body></html>`,
 			attachments: []attachmentData{
 				{
-					filename: "00FE068B62DDEC478BCC3A7E82CBC1CD@firma.local.eml",
+					filename:    "00FE068B62DDEC478BCC3A7E82CBC1CD@firma.local.eml",
 					contentType: "message/rfc822",
-					data: "From: Test Internal <internal@test.lan>\nTo: Test Internal 2 <internal2@test.lan>\nSubject: Internal Test\nDate: Thu, 13 Feb 2020 14:23:15 +0100\nMessage-ID: <387D8176-C866-4819-9257-18C1714275DD@test.lan>\nContent-Type: multipart/alternative; boundary=\"B_3664448610_676713694\"\nMIME-Version: 1.0\n\n--B_3664448610_676713694\nContent-Type: text/plain; charset=\"UTF-8\"\nContent-Transfer-Encoding: quoted-printable\n\ntest\n\n--B_3664448610_676713694\nContent-Type: text/html; charset=\"UTF-8\"\nContent-Transfer-Encoding: quoted-printable\n\n<html><head></head><body>test</body></html>\n\n\n--B_3664448610_676713694--\n",
+					data:        "From: Test Internal <internal@test.lan>\nTo: Test Internal 2 <internal2@test.lan>\nSubject: Internal Test\nDate: Thu, 13 Feb 2020 14:23:15 +0100\nMessage-ID: <387D8176-C866-4819-9257-18C1714275DD@test.lan>\nContent-Type: multipart/alternative; boundary=\"B_3664448610_676713694\"\nMIME-Version: 1.0\n\n--B_3664448610_676713694\nContent-Type: text/plain; charset=\"UTF-8\"\nContent-Transfer-Encoding: quoted-printable\n\ntest\n\n--B_3664448610_676713694\nContent-Type: text/html; charset=\"UTF-8\"\nContent-Transfer-Encoding: quoted-printable\n\n<html><head></head><body>test</body></html>\n\n\n--B_3664448610_676713694--\n",
 				},
 			},
 		},
 		17: {
 			contentType: "multipart/signed; protocol=\"application/pkcs7-signature\"; micalg=sha256; boundary=\"B_3664435388_2009730824\"",
-			mailData: signed,
-			subject:  "Test 2",
-			messageID: "67C6E9AC-B070-4EE2-8BB1-3ACC4B042A5F@local.lan",
+			mailData:    signed,
+			subject:     "Test 2",
+			messageID:   "67C6E9AC-B070-4EE2-8BB1-3ACC4B042A5F@local.lan",
 			from: []mail.Address{
 				{
 					Name:    "Test",
@@ -498,18 +498,17 @@ So, "Hello".`,
 					Address: "test2@local.lan",
 				},
 			},
-			date:       parseDate("Wed, 13 Feb 2020 09:30:09 +0000"),
+			date:     parseDate("Wed, 13 Feb 2020 09:30:09 +0000"),
 			textBody: `Okeh`,
 			htmlBody: `<html><head></head><body>Test</body></html>`,
 			attachments: []attachmentData{
 				{
-					filename:  "smime.p7s",
+					filename:    "smime.p7s",
 					contentType: "application/pkcs7-signature",
-					data:  "test",
+					data:        "test",
 				},
 			},
 		},
-
 	}
 
 	for index, td := range testData {
