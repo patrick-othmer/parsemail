@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"mime/multipart"
+	"mime/quotedprintable"
 	"net/mail"
 	"strings"
 	"time"
@@ -393,7 +394,15 @@ func decodeContent(content io.Reader, encoding string) (io.Reader, error) {
 		}
 
 		return bytes.NewReader(dd), nil
-	case "", "8bit", "quoted-printable":
+	case "quoted-printable":
+		decoded := quotedprintable.NewReader(content)
+		b, err := ioutil.ReadAll(decoded)
+		if err != nil {
+			return nil, err
+		}
+
+		return bytes.NewReader(b), nil
+	case "", "8bit":
 		return content, nil
 	default:
 		return nil, fmt.Errorf("unknown encoding: %s", encoding)
