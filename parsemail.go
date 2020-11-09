@@ -364,12 +364,19 @@ func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
 	return
 }
 
+// Everything that is not html or plain is treated as an attachment.
 func isAttachment(part *multipart.Part) bool {
-	if part.Header.Get("Content-Type") == messageRFC822 {
+	contentType := part.Header.Get("Content-Type")
+	if strings.Contains(contentType, ";") {
+		contentType = strings.SplitN(contentType, ";", 2)[0]
+	}
+	fmt.Printf("Content-type: %s\n", contentType)
+	if contentType != "text/html" &&
+		contentType != "text/plain" {
 		return true
 	}
 
-	return part.FileName() != ""
+	return false
 }
 
 func decodeAttachment(part *multipart.Part) (at Attachment, err error) {
