@@ -18,6 +18,8 @@ import (
 
 const contentTypeMultipartMixed = "multipart/mixed"
 const contentTypeMultipartAlternative = "multipart/alternative"
+const contentTypeMultipartAppleDouble = "multipart/appledouble"
+const messageRFC822 = "message/rfc822"
 const contentTypeMultipartSigned = "multipart/signed"
 const contentTypeMultipartRelated = "multipart/related"
 const contentTypeTextHtml = "text/html"
@@ -251,7 +253,7 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 			}
 			attachments = append(attachments, at)
 			if strings.Contains(contentType, "application") ||
-				part.Header.Get("Content-Type") == "message/rfc822" {
+				part.Header.Get("Content-Type") == messageRFC822 {
 				continue
 			}
 		}
@@ -346,7 +348,7 @@ func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
 }
 
 func isAttachment(part *multipart.Part) bool {
-	if part.Header.Get("Content-Type") == "message/rfc822" {
+	if part.Header.Get("Content-Type") == messageRFC822 {
 		return true
 	}
 
@@ -355,13 +357,13 @@ func isAttachment(part *multipart.Part) bool {
 
 func decodeAttachment(part *multipart.Part) (at Attachment, err error) {
 	filename := ""
-	if part.Header.Get("Content-Type") == "message/rfc822" {
+	if part.Header.Get("Content-Type") == messageRFC822 {
 		filename = strings.Trim(decodeMimeSentence(part.Header.Get("Content-Id")), "<>") + ".eml"
 	} else {
 		filename = decodeMimeSentence(part.FileName())
 	}
 
-	if part.Header.Get("Content-Type") == "message/rfc822" {
+	if part.Header.Get("Content-Type") == messageRFC822 {
 		dd, err := ioutil.ReadAll(part)
 		if err != nil {
 			return at, err
