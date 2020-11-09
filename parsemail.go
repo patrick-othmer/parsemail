@@ -370,7 +370,7 @@ func isAttachment(part *multipart.Part) bool {
 	if strings.Contains(contentType, ";") {
 		contentType = strings.SplitN(contentType, ";", 2)[0]
 	}
-	fmt.Printf("Content-type: %s\n", contentType)
+
 	if contentType != "text/html" &&
 		contentType != "text/plain" {
 		return true
