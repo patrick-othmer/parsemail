@@ -585,6 +585,33 @@ So, "Hello".`,
 				},
 			},
 		},
+		21: {
+			mailData:    multipartMixedNestedInlineImage,
+			contentType: "multipart/mixed; boundary=\"_004_9D478DE2B90C4D018C093E6CE5A5BD28\"",
+			subject:     "Test 1",
+			messageID:   "9D478DE2-B90C-4D01-8C09-3E6CE5A5BD28@test.lan",
+			from: []mail.Address{
+				{
+					Name:    "Test",
+					Address: "test@test.lan",
+				},
+			},
+			to: []mail.Address{
+				{
+					Name:    "Test 2",
+					Address: "test2@test.lan",
+				},
+			},
+			date:     parseDate("Wed, 13 Feb 2020 13:39:30 +0000"),
+			textBody: `test body`,
+			embeddedFiles: []embeddedFileData{
+				{
+					cid:         "test.png",
+					contentType: "image/png",
+					base64data:  "dGVzdA==",
+				},
+			},
+		},
 	}
 
 	for index, td := range testData {
@@ -1447,6 +1474,34 @@ Content-Type: image/jpeg;
 Content-Transfer-Encoding: base64
 Content-Disposition: attachment;
  filename="b7565e46940ce947.jpg"
+
+dGVzdA==
+
+--_004_9D478DE2B90C4D018C093E6CE5A5BD28--
+`
+
+var multipartMixedNestedInlineImage = `From: Test <test@test.lan>
+To: Test 2 <test2@test.lan>
+Subject: Test 1
+Date: Thu, 13 Feb 2020 13:39:30 +0000
+Message-ID: <9D478DE2-B90C-4D01-8C09-3E6CE5A5BD28@test.lan>
+Content-Type: multipart/mixed;
+	boundary="_004_9D478DE2B90C4D018C093E6CE5A5BD28"
+MIME-Version: 1.0
+
+--_004_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+dGVzdCBib2R5
+
+--_004_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Disposition: inline;
+	filename=test.png
+Content-Type: image/png;
+	x-unix-mode=0644;
+	name="test.png"
+Content-Transfer-Encoding: base64
 
 dGVzdA==
 
