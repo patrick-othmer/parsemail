@@ -510,7 +510,7 @@ So, "Hello".`,
 			},
 		},
 		18: {
-			mailData:    appledouble,
+			mailData:    multipartMixed,
 			contentType: "multipart/mixed; boundary=\"_004_9D478DE2B90C4D018C093E6CE5A5BD28\"",
 			subject:     "Test 1",
 			messageID:   "9D478DE2-B90C-4D01-8C09-3E6CE5A5BD28@test.lan",
@@ -529,6 +529,13 @@ So, "Hello".`,
 			date:     parseDate("Wed, 13 Feb 2020 13:39:30 +0000"),
 			textBody: `test body`,
 			htmlBody: `<html><head></head><body>test body</body></html>`,
+			attachments: []attachmentData{
+				{
+					filename:    "00FE068B62DDEC478BCC3A7E82CBC1CD@firma.local.eml",
+					contentType: "message/rfc822",
+					data:        "From: Test Internal <internal@test.lan>\nTo: Test Internal 2 <internal2@test.lan>\nSubject: Internal Test\nDate: Thu, 13 Feb 2020 14:23:15 +0100\nMessage-ID: <387D8176-C866-4819-9257-18C1714275DD@test.lan>\nContent-Type: multipart/alternative; boundary=\"B_3664448610_676713694\"\nMIME-Version: 1.0\n\n--B_3664448610_676713694\nContent-Type: text/plain; charset=\"UTF-8\"\nContent-Transfer-Encoding: quoted-printable\n\ntest\n\n--B_3664448610_676713694\nContent-Type: text/html; charset=\"UTF-8\"\nContent-Transfer-Encoding: quoted-printable\n\n<html><head></head><body>test</body></html>\n\n\n--B_3664448610_676713694--\n",
+				},
+			},
 		},
 	}
 
@@ -1225,6 +1232,7 @@ dGVzdA==
 
 --B_3664435388_2009730824--
 `
+
 var appledouble = `From: Test <test@test.lan>
 To: Test 2 <test2@test.lan>
 Subject: Test 1
@@ -1274,6 +1282,67 @@ Content-Transfer-Encoding: Base64
 R0lGODlhAQE7
 
 --_004_9D478DE2B90C4D018C093E6CE5A5BD29--
+
+--_004_9D478DE2B90C4D018C093E6CE5A5BD28--
+`
+
+var multipartMixed = `From: Test <test@test.lan>
+To: Test 2 <test2@test.lan>
+Subject: Test 1
+Date: Thu, 13 Feb 2020 13:39:30 +0000
+Message-ID: <9D478DE2-B90C-4D01-8C09-3E6CE5A5BD28@test.lan>
+Content-Type: multipart/mixed;
+	boundary="_004_9D478DE2B90C4D018C093E6CE5A5BD28"
+MIME-Version: 1.0
+
+--_004_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: multipart/mixed;
+	boundary="_000_9D478DE2B90C4D018C093E6CE5A5BD28"
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+dGVzdCBib2R5
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: text/html; charset="utf-8"
+Content-ID: <14BA36B28C32FC42A7423CE2CC317CE8@firma.local>
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PnRlc3QgYm9keTwvYm9keT48L2h0bWw+
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28--
+
+--_004_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: message/rfc822
+Content-Disposition: attachment;
+	creation-date="Thu, 13 Feb 2020 13:39:30 GMT";
+	modification-date="Thu, 13 Feb 2020 13:39:30 GMT"
+Content-ID: <00FE068B62DDEC478BCC3A7E82CBC1CD@firma.local>
+
+From: Test Internal <internal@test.lan>
+To: Test Internal 2 <internal2@test.lan>
+Subject: Internal Test
+Date: Thu, 13 Feb 2020 14:23:15 +0100
+Message-ID: <387D8176-C866-4819-9257-18C1714275DD@test.lan>
+Content-Type: multipart/alternative; boundary="B_3664448610_676713694"
+MIME-Version: 1.0
+
+--B_3664448610_676713694
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+test
+
+--B_3664448610_676713694
+Content-Type: text/html; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+<html><head></head><body>test</body></html>
+
+
+--B_3664448610_676713694--
 
 --_004_9D478DE2B90C4D018C093E6CE5A5BD28--
 `
