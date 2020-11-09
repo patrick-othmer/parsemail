@@ -265,7 +265,7 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 			}
 			attachments = append(attachments, at)
 			if strings.Contains(contentType, "application") ||
-				part.Header.Get("Content-Type") == messageRFC822 {
+				isAttachmentByContentDisposition(part) {
 				continue
 			}
 		}
@@ -374,6 +374,21 @@ func isAttachment(part *multipart.Part) bool {
 	if contentType != "text/html" &&
 		contentType != "text/plain" {
 		return true
+	}
+
+	return false
+}
+
+func isAttachmentByContentDisposition(part *multipart.Part) bool {
+	if part.Header.Get("Content-Disposition") != "" {
+		contentDisposition, _, err := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
+		if err != nil {
+			return false
+		}
+
+		if contentDisposition == "attachment" {
+			return true
+		}
 	}
 
 	return false
