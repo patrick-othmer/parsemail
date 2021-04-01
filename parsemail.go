@@ -354,7 +354,7 @@ func decodeHeaderMime(header mail.Header) (mail.Header, error) {
 }
 
 func isEmbeddedFile(part *multipart.Part) bool {
-	return part.Header.Get("Content-Transfer-Encoding") != ""
+	return part.Header.Get("Content-Transfer-Encoding") != "" || part.Header.Get("Content-Disposition")[0:17] == "inline; filename="
 }
 
 func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
@@ -471,7 +471,7 @@ func decodeContent(content io.Reader, encoding string) (io.Reader, error) {
 		}
 
 		return bytes.NewReader(b), nil
-	case "7bit":
+	case "7bit", "", "8bit":
 		dd, err := ioutil.ReadAll(content)
 		if err != nil {
 			return nil, err
@@ -486,8 +486,6 @@ func decodeContent(content io.Reader, encoding string) (io.Reader, error) {
 		}
 
 		return bytes.NewReader(b), nil
-	case "", "8bit":
-		return content, nil
 	default:
 		return nil, fmt.Errorf("unknown encoding: %s", encoding)
 	}

@@ -612,6 +612,34 @@ So, "Hello".`,
 				},
 			},
 		},
+		22: {
+			mailData:    multipartAlternativeMixedInline,
+			contentType: "multipart/alternative; boundary=\"_004_9D478DE2B90C4D018C093E6CE5A5BD28\"",
+			subject:     "Test 1",
+			messageID:   "9D478DE2-B90C-4D01-8C09-3E6CE5A5BD28@test.lan",
+			from: []mail.Address{
+				{
+					Name:    "Test",
+					Address: "test@test.lan",
+				},
+			},
+			to: []mail.Address{
+				{
+					Name:    "Test 2",
+					Address: "test2@test.lan",
+				},
+			},
+			date:     parseDate("Wed, 13 Feb 2020 13:39:30 +0000"),
+			textBody: `test body`,
+			htmlBody: `<html><head></head><body>test body</body></html>`,
+			embeddedFiles: []embeddedFileData{
+				{
+					cid:         "test.PDF",
+					contentType: "application/pdf",
+					base64data:  "JVBERi0xLjMNCiXi48/TDQolUlNUWFBERjMK",
+				},
+			},
+		},
 	}
 
 	for index, td := range testData {
@@ -773,9 +801,7 @@ So, "Hello".`,
 					if err != nil {
 						t.Error(err)
 					}
-
 					encoded := base64.StdEncoding.EncodeToString(b)
-
 					if ra.CID == ad.cid && encoded == ad.base64data && ra.ContentType == ad.contentType {
 						found = true
 						embeds = append(embeds[:i], embeds[i+1:]...)
@@ -1504,6 +1530,47 @@ Content-Type: image/png;
 Content-Transfer-Encoding: base64
 
 dGVzdA==
+
+--_004_9D478DE2B90C4D018C093E6CE5A5BD28--
+`
+
+var multipartAlternativeMixedInline = `From: Test <test@test.lan>
+To: Test 2 <test2@test.lan>
+Subject: Test 1
+Date: Thu, 13 Feb 2020 13:39:30 +0000
+Message-ID: <9D478DE2-B90C-4D01-8C09-3E6CE5A5BD28@test.lan>
+Content-Type: multipart/alternative;
+	boundary="_004_9D478DE2B90C4D018C093E6CE5A5BD28"
+MIME-Version: 1.0
+
+--_004_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: multipart/mixed;
+	boundary="_000_9D478DE2B90C4D018C093E6CE5A5BD28"
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+dGVzdCBib2R5
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: text/html; charset="utf-8"
+Content-ID: <14BA36B28C32FC42A7423CE2CC317CE8@firma.local>
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PnRlc3QgYm9keTwvYm9keT48L2h0bWw+
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Disposition: inline;
+	filename=test.PDF
+Content-Type: application/pdf;
+	x-unix-mode=0644;
+	name="test.PDF"
+Content-Transfer-Encoding: quoted-printable
+
+%PDF-1.3=0D=0A%=E2=E3=CF=D3=0D=0A%RSTXPDF3
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28--
 
 --_004_9D478DE2B90C4D018C093E6CE5A5BD28--
 `
