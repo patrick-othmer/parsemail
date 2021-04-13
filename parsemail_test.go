@@ -640,6 +640,31 @@ So, "Hello".`,
 				},
 			},
 		},
+		23: {
+			contentType: "multipart/related; boundary=\"000000000000ab2e2205a26de587\"",
+			mailData:    multipartRelatedMixed,
+			subject:     "Saying Hello",
+			from: []mail.Address{
+				{
+					Name:    "John Doe",
+					Address: "jdoe@machine.example",
+				},
+			},
+			sender: mail.Address{
+				Name:    "Michael Jones",
+				Address: "mjones@machine.example",
+			},
+			to: []mail.Address{
+				{
+					Name:    "Mary Smith",
+					Address: "mary@example.net",
+				},
+			},
+			messageID: "1234@local.machine.example",
+			date:      parseDate("Fri, 21 Nov 1997 09:55:06 -0600"),
+			htmlBody:  "<html><head></head><body>test body</body></html>",
+			textBody:  "test body",
+		},
 	}
 
 	for index, td := range testData {
@@ -1573,4 +1598,37 @@ Content-Transfer-Encoding: quoted-printable
 --_000_9D478DE2B90C4D018C093E6CE5A5BD28--
 
 --_004_9D478DE2B90C4D018C093E6CE5A5BD28--
+`
+
+var multipartRelatedMixed = `MIME-Version: 1.0
+From: John Doe <jdoe@machine.example>
+Sender: Michael Jones <mjones@machine.example>
+To: Mary Smith <mary@example.net>
+Subject: Saying Hello
+Date: Fri, 21 Nov 1997 09:55:06 -0600
+Message-ID: <1234@local.machine.example>
+Subject: ooops
+To: test@example.rocks
+Content-Type: multipart/related; boundary="000000000000ab2e2205a26de587"
+
+--000000000000ab2e2205a26de587
+Content-Type: multipart/mixed; boundary="_000_9D478DE2B90C4D018C093E6CE5A5BD28"
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+dGVzdCBib2R5
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28
+Content-Type: text/html; charset="utf-8"
+Content-ID: <14BA36B28C32FC42A7423CE2CC317CE8@firma.local>
+Content-Transfer-Encoding: base64
+
+PGh0bWw+PGhlYWQ+PC9oZWFkPjxib2R5PnRlc3QgYm9keTwvYm9keT48L2h0bWw+
+
+--_000_9D478DE2B90C4D018C093E6CE5A5BD28--
+
+
+--000000000000ab2e2205a26de587--
 `

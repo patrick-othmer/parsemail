@@ -146,6 +146,16 @@ func parseMultipartRelated(msg io.Reader, boundary string) (textBody, htmlBody s
 			}
 
 			htmlBody += strings.TrimSuffix(string(ppContent[:]), "\n")
+		case contentTypeMultipartMixed:
+			tb, hb, at, ef, err := parseMultipartMixed(part, params["boundary"])
+			if err != nil {
+				return textBody, htmlBody, attachments, embeddedFiles, err
+			}
+
+			htmlBody += hb
+			textBody += tb
+			embeddedFiles = append(embeddedFiles, ef...)
+			attachments = append(attachments, at...)
 		case contentTypeMultipartAlternative:
 			tb, hb, at, ef, err := parseMultipartAlternative(part, params["boundary"])
 			if err != nil {
