@@ -1,4 +1,4 @@
-module github.com/patrick-othmer/parsemail
+module github.com/on2itsecurity/parsemail
 
 go 1.12
 
