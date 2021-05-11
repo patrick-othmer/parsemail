@@ -68,6 +68,27 @@ func TestParseEmail_on2it(t *testing.T) {
 				},
 			},
 		},
+		"emptyPlaintextBase64Html": {
+			contentType: `multipart/alternative; boundary="--boundary_83159_42d3ef90-0a52-4a0c-9867-0ccf54ca8b80"`,
+			mailData:    emptyPlaintextBase64Html,
+			subject:     "Some very important email",
+			messageID:   "dshfkhhskjfdd0002eeaa@mail.example.org",
+			from: []mail.Address{
+				{
+					Name:    "Example IT - Support",
+					Address: "support@example.org",
+				},
+			},
+			to: []mail.Address{
+				{
+					Name:    "Servicedesk",
+					Address: "servicedesk@example.net",
+				},
+			},
+			date:     parseDate("Sun, 07 Feb 2021 23:49:48 -0500"),
+			textBody: ``,
+			htmlBody: `<span>foo bar</span>`,
+		},
 	}
 
 	for index, td := range testData {
@@ -268,4 +289,40 @@ Content-Transfer-Encoding: quoted-printable
 
 attachment text part
 --0000000000007e2bb40587e36196--
+`
+
+var emptyPlaintextBase64Html = `Return-Path: <support@example.org>
+Delivered-To: servicedesk@example.net
+Received: from mail.example.org
+	by mail.example.net (Dovecot) with LMTP id 7KTQOu3CIGCQiQAAhDWd3A
+	for <servicedesk@example.net>; Mon, 08 Feb 2021 05:49:49 +0100
+Received: from smtp.example.org (10.162.206.25) by
+ mail.example.org (10.162.224.82) with Microsoft SMTP Server id
+ 15.1.1979.3 via Frontend Transport; Sun, 7 Feb 2021 23:49:48 -0500
+Received: from somehost.example.org ([127.0.0.1]) by smtp.example.org with Microsoft SMTPSVC(8.5.9600.16384);
+	 Sun, 7 Feb 2021 23:49:48 -0500
+Importance: normal
+Priority: normal
+Content-Class: urn:content-classes:message
+MIME-Version: 1.0
+From: Example IT - Support <support@example.org>
+To: Servicedesk <servicedesk@example.net>
+Date: Sun, 7 Feb 2021 23:49:48 -0500
+Subject: Some very important email
+Content-Type: multipart/alternative;
+	boundary="--boundary_83159_42d3ef90-0a52-4a0c-9867-0ccf54ca8b80"
+Message-ID: <dshfkhhskjfdd0002eeaa@mail.example.org>
+X-OriginalArrivalTime: 08 Feb 2021 04:49:48.0307 (UTC) FILETIME=[D4251630:01D6FDD5]
+
+----boundary_83159_42d3ef90-0a52-4a0c-9867-0ccf54ca8b80
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: quoted-printable
+
+
+----boundary_83159_42d3ef90-0a52-4a0c-9867-0ccf54ca8b80
+Content-Type: text/html; charset="utf-8"
+Content-Transfer-Encoding: base64
+
+PHNwYW4+Zm9vIGJhcjwvc3Bhbj4=
+----boundary_83159_42d3ef90-0a52-4a0c-9867-0ccf54ca8b80--
 `

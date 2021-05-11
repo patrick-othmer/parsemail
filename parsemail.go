@@ -444,7 +444,9 @@ func readAllDecode(content io.Reader, encoding, contentType string) ([]byte, err
 	}
 
 	cr, err := cs.NewReader(r, contentType)
-	if err != nil {
+	if err == io.EOF {
+		return []byte{}, nil
+	} else if err != nil {
 		return nil, err
 	}
 
