@@ -1,15 +1,266 @@
 package parsemail
 
-// We add our tests in a separate file to prevent merge problems in case the original mainainer comes back.
+// We add our tests in a separate file to prevent merge problems in case the original maintainer comes back.
 
 import (
 	"encoding/base64"
 	"io/ioutil"
 	"net/mail"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
 )
+
+func Test_decodeMimeSentence(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			"plain_ascii",
+			args{
+				`foo bar`,
+			},
+			`foo bar`,
+		},
+		{
+			"utf_8_bmp",
+			args{
+				`=?utf-8?Q?F=C3=B8=C3=B8_bar?=`,
+			},
+			`Føø bar`,
+		},
+		{
+			"utf_8_smp",
+			args{
+				`=?utf-8?Q?Cheers_=F0=9F=8D=BA!?=`,
+			},
+			`Cheers 🍺!`,
+		},
+		{
+			"windows-1251",
+			args{
+				`=?windows-1251?Q?John_=C4oe?=`,
+			},
+			`John Дoe`,
+		},
+		{
+			"windows-1252",
+			args{
+				`=?windows-1252?Q?John_Do=80?=`,
+			},
+			`John Do€`,
+		},
+		{
+			"iso-8859-15",
+			args{
+				`=?iso-8859-15?Q?John_Do=A4?=`,
+			},
+			`John Do€`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := decodeMimeSentence(tt.args.s); got != tt.want {
+				t.Errorf("decodeMimeSentence() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_headerParser_parseAddress(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name   string
+		args   args
+		wantMa *mail.Address
+	}{
+		{
+			"plain_ascii",
+			args{
+				`test@example.com`,
+			},
+			&mail.Address{
+				Address: `test@example.com`,
+			},
+		},
+		{
+			"utf_8_bmp",
+			args{
+				`=?utf-8?Q?John_D=C3=B8e?= <john.doe@example.com>`,
+			},
+			&mail.Address{
+				Name:    `John Døe`,
+				Address: `john.doe@example.com`,
+			},
+		},
+		{
+			"utf_8_smp",
+			args{
+				`=?utf-8?Q?John_=F0=9F=8D=BA_Doe?= <john.doe@example.com>`,
+			},
+			&mail.Address{
+				Name:    `John 🍺 Doe`,
+				Address: `john.doe@example.com`,
+			},
+		},
+		{
+			"windows-1251",
+			args{
+				`=?windows-1251?Q?John_=C4oe?= <john.doe@example.com>`,
+			},
+			&mail.Address{
+				Name:    `John Дoe`,
+				Address: `john.doe@example.com`,
+			},
+		},
+		{
+			"windows-1252",
+			args{
+				`=?windows-1252?Q?John_Do=80?= <john.doe@example.com>`,
+			},
+			&mail.Address{
+				Name:    `John Do€`,
+				Address: `john.doe@example.com`,
+			},
+		},
+		{
+			"iso-8859-15",
+			args{
+				`=?iso-8859-15?Q?John_Do=A4?= <john.doe@example.com>`,
+			},
+			&mail.Address{
+				Name:    `John Do€`,
+				Address: `john.doe@example.com`,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hp := headerParser{}
+			if gotMa := hp.parseAddress(tt.args.s); !reflect.DeepEqual(gotMa, tt.wantMa) {
+				t.Errorf("headerParser.parseAddress() = %v, want %v", gotMa, tt.wantMa)
+			}
+		})
+	}
+}
+
+func Test_headerParser_parseAddressList(t *testing.T) {
+	type args struct {
+		s string
+	}
+	tests := []struct {
+		name   string
+		args   args
+		wantMa []*mail.Address
+	}{
+		{
+			"plain_ascii_single",
+			args{
+				`test@example.com`,
+			},
+			[]*mail.Address{
+				{
+					Address: `test@example.com`,
+				},
+			},
+		},
+		{
+			"utf_8_bmp_single",
+			args{
+				`=?utf-8?Q?John_D=C3=B8e?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Name:    `John Døe`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+		{
+			"utf_8_smp_single",
+			args{
+				`=?utf-8?Q?John_=F0=9F=8D=BA_Doe?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Name:    `John 🍺 Doe`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+		{
+			"windows-1251",
+			args{
+				`=?windows-1251?Q?John_=C4oe?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Name:    `John Дoe`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+		{
+			"windows-1252",
+			args{
+				`=?windows-1252?Q?John_Do=80?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Name:    `John Do€`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+		{
+			"iso-8859-15",
+			args{
+				`=?iso-8859-15?Q?John_Do=A4?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Name:    `John Do€`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+		{
+			"multiple_charsets",
+			args{
+				`test@example.com,=?utf-8?Q?John_D=C3=B8e?= <john.doe@example.com>,=?windows-1251?Q?John_=C4oe?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Address: `test@example.com`,
+				},
+				{
+					Name:    `John Døe`,
+					Address: `john.doe@example.com`,
+				},
+				{
+					Name:    `John Дoe`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hp := headerParser{}
+			if gotMa := hp.parseAddressList(tt.args.s); !reflect.DeepEqual(gotMa, tt.wantMa) {
+				t.Errorf("headerParser.parseAddressList() = %v, want %v", gotMa, tt.wantMa)
+			}
+		})
+	}
+}
 
 func TestParseEmail_on2it(t *testing.T) {
 	var testData = map[string]struct {

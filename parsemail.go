@@ -14,6 +14,8 @@ import (
 	"time"
 
 	cs "golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding/ianaindex"
+	"golang.org/x/text/transform"
 )
 
 const contentTypeMultipartMixed = "multipart/mixed"
@@ -328,8 +330,7 @@ func decodeMimeSentence(s string) string {
 	ss := strings.Split(s, " ")
 
 	for _, word := range ss {
-		dec := new(mime.WordDecoder)
-		w, err := dec.Decode(word)
+		w, err := mimeWordDecoder.Decode(word)
 		if err != nil {
 			if len(result) == 0 {
 				w = word
@@ -490,13 +491,27 @@ type headerParser struct {
 	err    error
 }
 
+// This is needed because the default address parser only understands utf-8, iso-8859-1, and us-ascii.
+var mimeWordDecoder = &mime.WordDecoder{
+	CharsetReader: func(charset string, input io.Reader) (io.Reader, error) {
+		enc, err := ianaindex.MIME.Encoding(charset)
+		if err != nil {
+			return nil, err
+		}
+		return transform.NewReader(input, enc.NewDecoder()), nil
+	},
+}
+var addressParser = mail.AddressParser{
+	WordDecoder: mimeWordDecoder,
+}
+
 func (hp headerParser) parseAddress(s string) (ma *mail.Address) {
 	if hp.err != nil {
 		return nil
 	}
 
 	if strings.Trim(s, " \n") != "" {
-		ma, hp.err = mail.ParseAddress(s)
+		ma, hp.err = addressParser.Parse(s)
 
 		return ma
 	}
@@ -510,7 +525,7 @@ func (hp headerParser) parseAddressList(s string) (ma []*mail.Address) {
 	}
 
 	if strings.Trim(s, " \n") != "" {
-		ma, hp.err = mail.ParseAddressList(s)
+		ma, hp.err = addressParser.ParseList(s)
 		return
 	}
 
