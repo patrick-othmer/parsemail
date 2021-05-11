@@ -361,7 +361,7 @@ func decodeHeaderMime(header mail.Header) (mail.Header, error) {
 }
 
 func isEmbeddedFile(part *multipart.Part) bool {
-	return part.Header.Get("Content-Transfer-Encoding") != "" || part.Header.Get("Content-Disposition")[0:17] == "inline; filename="
+	return part.Header.Get("Content-Transfer-Encoding") != "" || strings.HasPrefix(part.Header.Get("Content-Disposition"), "inline; filename=")
 }
 
 func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
