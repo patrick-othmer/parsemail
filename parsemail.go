@@ -274,10 +274,7 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 			attachments = append(attachments, at)
-			if strings.Contains(contentType, "application") ||
-				isAttachmentByContentDisposition(part) {
-				continue
-			}
+			continue
 		}
 
 		encoding := part.Header.Get("Content-Transfer-Encoding")
@@ -399,21 +396,6 @@ func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
 
 // Everything that is not html or plain is treated as an attachment.
 func isAttachment(part *multipart.Part) bool {
-	contentType := part.Header.Get("Content-Type")
-	if strings.Contains(contentType, ";") {
-		contentType = strings.SplitN(contentType, ";", 2)[0]
-	}
-
-	if contentType != "text/html" &&
-		contentType != "text/plain" &&
-		isAttachmentByContentDisposition(part) {
-		return true
-	}
-
-	return false
-}
-
-func isAttachmentByContentDisposition(part *multipart.Part) bool {
 	if part.Header.Get("Content-Disposition") != "" {
 		contentDisposition, _, err := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
 		if err != nil {
