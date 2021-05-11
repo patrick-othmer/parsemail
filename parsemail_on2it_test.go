@@ -14,6 +14,7 @@ import (
 func TestParseEmail_on2it(t *testing.T) {
 	var testData = map[string]struct {
 		mailData string
+		wantErr  bool
 
 		contentType     string
 		content         string
@@ -43,8 +44,8 @@ func TestParseEmail_on2it(t *testing.T) {
 		headerCheck     func(mail.Header, *testing.T)
 	}{
 		"textPlainAttachmentInMultipart": {
-			contentType: `multipart/mixed; boundary="0000000000007e2bb40587e36196"`,
 			mailData:    textPlainAttachmentInMultipart,
+			contentType: `multipart/mixed; boundary="0000000000007e2bb40587e36196"`,
 			subject:     "Re: kern/54143 (virtualbox)",
 			from: []mail.Address{
 				{
@@ -69,8 +70,8 @@ func TestParseEmail_on2it(t *testing.T) {
 			},
 		},
 		"emptyPlaintextBase64Html": {
-			contentType: `multipart/alternative; boundary="--boundary_83159_42d3ef90-0a52-4a0c-9867-0ccf54ca8b80"`,
 			mailData:    emptyPlaintextBase64Html,
+			contentType: `multipart/alternative; boundary="--boundary_83159_42d3ef90-0a52-4a0c-9867-0ccf54ca8b80"`,
 			subject:     "Some very important email",
 			messageID:   "dshfkhhskjfdd0002eeaa@mail.example.org",
 			from: []mail.Address{
@@ -89,12 +90,36 @@ func TestParseEmail_on2it(t *testing.T) {
 			textBody: ``,
 			htmlBody: `<span>foo bar</span>`,
 		},
+		"evilShortContentDisposition": {
+			mailData:    evilShortContentDisposition,
+			wantErr:     true,
+			contentType: `multipart/mixed; boundary="0000000000007e2bb40587e36196"`,
+			subject:     "Evil hackerman panicking my mail parser",
+			from: []mail.Address{
+				{
+					Address: "test@example.org",
+				},
+			},
+			to: []mail.Address{
+				{
+					Address: "test@example.com",
+				},
+			},
+			date:     parseDate("Thu, 02 May 2019 11:25:35 +0300"),
+			textBody: `plain text part`,
+		},
 	}
 
 	for index, td := range testData {
 		e, err := Parse(strings.NewReader(td.mailData))
-		if err != nil {
-			t.Error(err)
+		if !td.wantErr {
+			if err != nil {
+				t.Error(err)
+			}
+		} else {
+			if err == nil {
+				t.Errorf("[Test Case %v] Expected error did not occur", index)
+			}
 		}
 
 		if td.contentType != e.ContentType {
@@ -325,4 +350,23 @@ Content-Transfer-Encoding: base64
 
 PHNwYW4+Zm9vIGJhcjwvc3Bhbj4=
 ----boundary_83159_42d3ef90-0a52-4a0c-9867-0ccf54ca8b80--
+`
+
+var evilShortContentDisposition = `From: test@example.org
+Date: Thu, 2 May 2019 11:25:35 +0300
+Subject: Evil hackerman panicking my mail parser
+To: test@example.com
+Content-Type: multipart/mixed; boundary="0000000000007e2bb40587e36196"
+
+--0000000000007e2bb40587e36196
+Content-Type: text/plain; charset="UTF-8"
+
+plain text part
+--0000000000007e2bb40587e36196
+Content-Disposition: inline; xxx
+Content-Type: application/octet-stream
+Content-Transfer-Encoding: quoted-printable
+
+attachment part
+--0000000000007e2bb40587e36196--
 `
