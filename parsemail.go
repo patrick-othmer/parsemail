@@ -14,6 +14,8 @@ import (
 	"time"
 
 	cs "golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding/ianaindex"
+	"golang.org/x/text/transform"
 )
 
 const contentTypeMultipartMixed = "multipart/mixed"
@@ -274,10 +276,7 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 			attachments = append(attachments, at)
-			if strings.Contains(contentType, "application") ||
-				isAttachmentByContentDisposition(part) {
-				continue
-			}
+			continue
 		}
 
 		encoding := part.Header.Get("Content-Transfer-Encoding")
@@ -331,8 +330,7 @@ func decodeMimeSentence(s string) string {
 	ss := strings.Split(s, " ")
 
 	for _, word := range ss {
-		dec := new(mime.WordDecoder)
-		w, err := dec.Decode(word)
+		w, err := mimeWordDecoder.Decode(word)
 		if err != nil {
 			if len(result) == 0 {
 				w = word
@@ -364,7 +362,7 @@ func decodeHeaderMime(header mail.Header) (mail.Header, error) {
 }
 
 func isEmbeddedFile(part *multipart.Part) bool {
-	return part.Header.Get("Content-Transfer-Encoding") != "" || part.Header.Get("Content-Disposition")[0:17] == "inline; filename="
+	return part.Header.Get("Content-Transfer-Encoding") != "" || strings.HasPrefix(part.Header.Get("Content-Disposition"), "inline; filename=")
 }
 
 func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
@@ -399,21 +397,6 @@ func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
 
 // Everything that is not html or plain is treated as an attachment.
 func isAttachment(part *multipart.Part) bool {
-	contentType := part.Header.Get("Content-Type")
-	if strings.Contains(contentType, ";") {
-		contentType = strings.SplitN(contentType, ";", 2)[0]
-	}
-
-	if contentType != "text/html" &&
-		contentType != "text/plain" &&
-		isAttachmentByContentDisposition(part) {
-		return true
-	}
-
-	return false
-}
-
-func isAttachmentByContentDisposition(part *multipart.Part) bool {
 	if part.Header.Get("Content-Disposition") != "" {
 		contentDisposition, _, err := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
 		if err != nil {
@@ -462,7 +445,9 @@ func readAllDecode(content io.Reader, encoding, contentType string) ([]byte, err
 	}
 
 	cr, err := cs.NewReader(r, contentType)
-	if err != nil {
+	if err == io.EOF {
+		return []byte{}, nil
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -506,13 +491,27 @@ type headerParser struct {
 	err    error
 }
 
+// This is needed because the default address parser only understands utf-8, iso-8859-1, and us-ascii.
+var mimeWordDecoder = &mime.WordDecoder{
+	CharsetReader: func(charset string, input io.Reader) (io.Reader, error) {
+		enc, err := ianaindex.MIME.Encoding(charset)
+		if err != nil {
+			return nil, err
+		}
+		return transform.NewReader(input, enc.NewDecoder()), nil
+	},
+}
+var addressParser = mail.AddressParser{
+	WordDecoder: mimeWordDecoder,
+}
+
 func (hp headerParser) parseAddress(s string) (ma *mail.Address) {
 	if hp.err != nil {
 		return nil
 	}
 
 	if strings.Trim(s, " \n") != "" {
-		ma, hp.err = mail.ParseAddress(s)
+		ma, hp.err = addressParser.Parse(s)
 
 		return ma
 	}
@@ -526,7 +525,7 @@ func (hp headerParser) parseAddressList(s string) (ma []*mail.Address) {
 	}
 
 	if strings.Trim(s, " \n") != "" {
-		ma, hp.err = mail.ParseAddressList(s)
+		ma, hp.err = addressParser.ParseList(s)
 		return
 	}
 
