@@ -287,10 +287,15 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 		} else if contentType == contentTypeMultipartMixed {
-			textBody, htmlBody, attachments, embeddedFiles, err = parseMultipartMixed(part, params["boundary"])
+			tb, hb, at, ef, err := parseMultipartMixed(part, params["boundary"])
 			if err != nil {
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
+
+			htmlBody += hb
+			textBody += tb
+			embeddedFiles = append(embeddedFiles, ef...)
+			attachments = append(attachments, at...)
 		} else if contentType == contentTypeMultipartRelated {
 			textBody, htmlBody, attachments, embeddedFiles, err = parseMultipartRelated(part, params["boundary"])
 			if err != nil {
