@@ -359,6 +359,34 @@ func TestParseEmail_on2it(t *testing.T) {
 			date:     parseDate("Thu, 02 May 2019 11:25:35 +0300"),
 			textBody: `plain text part`,
 		},
+		"nestedMixed": {
+			mailData:    nestedMixed,
+			contentType: `multipart/mixed; boundary=--boundary_mixed_level_0`,
+			subject:     "nested mixed mime multiparts",
+			messageID:   "dshfkhhskjfdd0002eeaa@mail.example.org",
+			from: []mail.Address{
+				{
+					Name:    "John Doe",
+					Address: "john.doe@example.com",
+				},
+			},
+			to: []mail.Address{
+				{
+					Name:    "",
+					Address: "jane.doe@example.net",
+				},
+			},
+			date:     parseDate("Sun, 07 Feb 2021 23:49:48 -0500"),
+			textBody: `something something plain text`,
+			htmlBody: `<span>something something html</span>`,
+			attachments: []attachmentData{
+				{
+					filename:    "test.txt",
+					contentType: "text/plain",
+					data:        "attachment text part",
+				},
+			},
+		},
 	}
 
 	for index, td := range testData {
@@ -620,4 +648,46 @@ Content-Transfer-Encoding: quoted-printable
 
 attachment part
 --0000000000007e2bb40587e36196--
+`
+
+var nestedMixed = `MIME-Version: 1.0
+From: John Doe <john.doe@example.com>
+To: jane.doe@example.net
+Date: Sun, 7 Feb 2021 23:49:48 -0500
+Subject: nested mixed mime multiparts
+Content-Type: multipart/mixed;
+ boundary=--boundary_mixed_level_0
+Message-ID: <dshfkhhskjfdd0002eeaa@mail.example.org>
+
+----boundary_mixed_level_0
+Content-Type: multipart/alternative;
+ boundary=--boundary_alternative_level_1
+
+----boundary_alternative_level_1
+Content-Type: text/plain; charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+
+something something plain text
+
+----boundary_alternative_level_1
+Content-Type: text/html; charset=us-ascii
+Content-Transfer-Encoding: quoted-printable
+
+<span>something something html</span>
+----boundary_alternative_level_1--
+
+----boundary_mixed_level_0
+Content-Type: multipart/mixed;
+ boundary=--boundary_mixed_level_1
+
+----boundary_mixed_level_1
+Content-Disposition: attachment;
+    filename=test.txt
+Content-Type: text/plain; charset="UTF-8"
+Content-Transfer-Encoding: quoted-printable
+
+attachment text part
+----boundary_mixed_level_1--
+
+----boundary_mixed_level_0--
 `
