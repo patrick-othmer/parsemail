@@ -335,6 +335,8 @@ func decodeMimeSentence(s string) string {
 	ss := strings.Split(s, " ")
 
 	for _, word := range ss {
+		word = removeUnsupportedEncoding(word)
+
 		w, err := mimeWordDecoder.Decode(word)
 		if err != nil {
 			if len(result) == 0 {
@@ -348,6 +350,100 @@ func decodeMimeSentence(s string) string {
 	}
 
 	return strings.Join(result, "")
+}
+
+func removeUnsupportedEncodingForAddress(s string) string {
+	if s == "" {
+		return s
+	}
+
+	ss := strings.Split(s, " ")
+	result := []string{}
+
+	for _, word := range ss {
+		validWord := word
+
+		if !(strings.HasPrefix(word, "=?") && strings.HasSuffix(word, "?=")) {
+			result = append(result, validWord)
+
+			continue
+		}
+
+		word = word[2 : len(word)-2]
+
+		// split word "UTF-8?q?text" into "UTF-8", 'q', and "text"
+		charset, text, _ := strings.Cut(word, "?")
+		if charset == "" {
+			validWord = `"(removed text: non supported charset)"`
+		}
+
+		encoding, _, _ := strings.Cut(text, "?")
+		if len(encoding) != 1 {
+			validWord = `"(removed text: non supported encoding)"`
+		}
+
+		if charset != "" {
+			encoder, _ := ianaindex.MIME.Encoding(charset)
+
+			if encoder == nil {
+				validWord = `"(removed text: non supported encoder)"`
+			}
+		}
+
+		result = append(result, validWord)
+	}
+
+	return strings.Join(result, " ")
+}
+
+func removeUnsupportedEncodingForAddressList(s string) string {
+	if s == "" {
+		return s
+	}
+
+	addresses := s
+	result := []string{}
+
+	for _, address := range strings.Split(addresses, ",") {
+		result = append(result, removeUnsupportedEncodingForAddress(address))
+	}
+
+	return strings.Join(result, ",")
+}
+
+func removeUnsupportedEncoding(s string) string {
+	if s == "" {
+		return s
+	}
+
+	word := s
+
+	if !(strings.HasPrefix(word, "=?") && strings.HasSuffix(word, "?=")) {
+		return word
+	}
+
+	word = word[2 : len(word)-2]
+
+	// split word "UTF-8?q?text" into "UTF-8", 'q', and "text"
+	charset, text, _ := strings.Cut(word, "?")
+	if charset == "" {
+		return "(removed text: non supported charset)"
+	}
+
+	encoding, _, _ := strings.Cut(text, "?")
+	if len(encoding) != 1 {
+		return "(removed text: non supported encoding)"
+	}
+
+	if charset != "" {
+		encoder, _ := ianaindex.MIME.Encoding(charset)
+
+		if encoder == nil {
+			return "(removed text: non supported encoder)"
+		}
+	}
+
+	return s
 }
 
 func decodeHeaderMime(header mail.Header) (mail.Header, error) {
@@ -503,9 +599,15 @@ var mimeWordDecoder = &mime.WordDecoder{
 		if err != nil {
 			return nil, err
 		}
+
+		if enc == nil {
+			return nil, fmt.Errorf("invalid encoding for charset %s", charset)
+		}
+
 		return transform.NewReader(input, enc.NewDecoder()), nil
 	},
 }
+
 var addressParser = mail.AddressParser{
 	WordDecoder: mimeWordDecoder,
 }
@@ -516,7 +618,7 @@ func (hp headerParser) parseAddress(s string) (ma *mail.Address) {
 	}
 
 	if strings.Trim(s, " \n") != "" {
-		ma, hp.err = addressParser.Parse(s)
+		ma, hp.err = addressParser.Parse(removeUnsupportedEncodingForAddress(s))
 
 		return ma
 	}
@@ -530,7 +632,7 @@ func (hp headerParser) parseAddressList(s string) (ma []*mail.Address) {
 	}
 
 	if strings.Trim(s, " \n") != "" {
-		ma, hp.err = addressParser.ParseList(s)
+		ma, hp.err = addressParser.ParseList(removeUnsupportedEncodingForAddressList(s))
 		return
 	}
 
