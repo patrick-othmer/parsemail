@@ -63,6 +63,20 @@ func Test_decodeMimeSentence(t *testing.T) {
 			},
 			`John Do€`,
 		},
+		{
+			"utf-7",
+			args{
+				`=?utf-7?B?Sm9obiBEbytJS3ct?=`,
+			},
+			`(removed text: non supported encoder)`,
+		},
+		{
+			"gb2312",
+			args{
+				`=?gb2312?B?Sm9obiBEb2U=?=`,
+			},
+			`(removed text: non supported encoder)`,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -138,6 +152,26 @@ func Test_headerParser_parseAddress(t *testing.T) {
 			},
 			&mail.Address{
 				Name:    `John Do€`,
+				Address: `john.doe@example.com`,
+			},
+		},
+		{
+			"utf-7",
+			args{
+				`=?utf-7?B?Sm9obiBEbytJS3ct?= <john.doe@example.com>`,
+			},
+			&mail.Address{
+				Name:    `(removed text: non supported encoder)`,
+				Address: `john.doe@example.com`,
+			},
+		},
+		{
+			"gb2312",
+			args{
+				`=?gb2312?B?Sm9obiBEb2U=?= <john.doe@example.com>`,
+			},
+			&mail.Address{
+				Name:    `(removed text: non supported encoder)`,
 				Address: `john.doe@example.com`,
 			},
 		},
@@ -228,6 +262,49 @@ func Test_headerParser_parseAddressList(t *testing.T) {
 			[]*mail.Address{
 				{
 					Name:    `John Do€`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+		{
+			"utf-7",
+			args{
+				`=?utf-7?B?Sm9obiBEbytJS3ct?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Name:    `(removed text: non supported encoder)`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+		{
+			"gb2312",
+			args{
+				`=?gb2312?B?Sm9obiBEb2U=?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Name:    `(removed text: non supported encoder)`,
+					Address: `john.doe@example.com`,
+				},
+			},
+		},
+		{
+			"multiple_charsets with unsupported encoders",
+			args{
+				`test@example.com,=?utf-8?Q?John_D=C3=B8e?= <john.doe@example.com>,=?gb2312?B?Sm9obiBEb2U=?= <john.doe@example.com>`,
+			},
+			[]*mail.Address{
+				{
+					Address: `test@example.com`,
+				},
+				{
+					Name:    `John Døe`,
+					Address: `john.doe@example.com`,
+				},
+				{
+					Name:    `(removed text: non supported encoder)`,
 					Address: `john.doe@example.com`,
 				},
 			},
