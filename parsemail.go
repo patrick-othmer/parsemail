@@ -14,6 +14,8 @@ import (
 	"time"
 
 	cs "golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding/ianaindex"
+	"golang.org/x/text/transform"
 )
 
 const contentTypeMultipartMixed = "multipart/mixed"
@@ -274,10 +276,7 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 			attachments = append(attachments, at)
-			if strings.Contains(contentType, "application") ||
-				isAttachmentByContentDisposition(part) {
-				continue
-			}
+			continue
 		}
 
 		encoding := part.Header.Get("Content-Transfer-Encoding")
@@ -288,10 +287,15 @@ func parseMultipartMixed(msg io.Reader, boundary string) (textBody, htmlBody str
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
 		} else if contentType == contentTypeMultipartMixed {
-			textBody, htmlBody, attachments, embeddedFiles, err = parseMultipartMixed(part, params["boundary"])
+			tb, hb, at, ef, err := parseMultipartMixed(part, params["boundary"])
 			if err != nil {
 				return textBody, htmlBody, attachments, embeddedFiles, err
 			}
+
+			htmlBody += hb
+			textBody += tb
+			embeddedFiles = append(embeddedFiles, ef...)
+			attachments = append(attachments, at...)
 		} else if contentType == contentTypeMultipartRelated {
 			textBody, htmlBody, attachments, embeddedFiles, err = parseMultipartRelated(part, params["boundary"])
 			if err != nil {
@@ -331,8 +335,9 @@ func decodeMimeSentence(s string) string {
 	ss := strings.Split(s, " ")
 
 	for _, word := range ss {
-		dec := new(mime.WordDecoder)
-		w, err := dec.Decode(word)
+		word = removeUnsupportedEncoding(word)
+
+		w, err := mimeWordDecoder.Decode(word)
 		if err != nil {
 			if len(result) == 0 {
 				w = word
@@ -345,6 +350,100 @@ func decodeMimeSentence(s string) string {
 	}
 
 	return strings.Join(result, "")
+}
+
+func removeUnsupportedEncodingForAddress(s string) string {
+	if s == "" {
+		return s
+	}
+
+	ss := strings.Split(s, " ")
+	result := []string{}
+
+	for _, word := range ss {
+		validWord := word
+
+		if !(strings.HasPrefix(word, "=?") && strings.HasSuffix(word, "?=")) {
+			result = append(result, validWord)
+
+			continue
+		}
+
+		word = word[2 : len(word)-2]
+
+		// split word "UTF-8?q?text" into "UTF-8", 'q', and "text"
+		charset, text, _ := strings.Cut(word, "?")
+		if charset == "" {
+			validWord = `"(removed text: non supported charset)"`
+		}
+
+		encoding, _, _ := strings.Cut(text, "?")
+		if len(encoding) != 1 {
+			validWord = `"(removed text: non supported encoding)"`
+		}
+
+		if charset != "" {
+			encoder, _ := ianaindex.MIME.Encoding(charset)
+
+			if encoder == nil {
+				validWord = `"(removed text: non supported encoder)"`
+			}
+		}
+
+		result = append(result, validWord)
+	}
+
+	return strings.Join(result, " ")
+}
+
+func removeUnsupportedEncodingForAddressList(s string) string {
+	if s == "" {
+		return s
+	}
+
+	addresses := s
+	result := []string{}
+
+	for _, address := range strings.Split(addresses, ",") {
+		result = append(result, removeUnsupportedEncodingForAddress(address))
+	}
+
+	return strings.Join(result, ",")
+}
+
+func removeUnsupportedEncoding(s string) string {
+	if s == "" {
+		return s
+	}
+
+	word := s
+
+	if !(strings.HasPrefix(word, "=?") && strings.HasSuffix(word, "?=")) {
+		return word
+	}
+
+	word = word[2 : len(word)-2]
+
+	// split word "UTF-8?q?text" into "UTF-8", 'q', and "text"
+	charset, text, _ := strings.Cut(word, "?")
+	if charset == "" {
+		return "(removed text: non supported charset)"
+	}
+
+	encoding, _, _ := strings.Cut(text, "?")
+	if len(encoding) != 1 {
+		return "(removed text: non supported encoding)"
+	}
+
+	if charset != "" {
+		encoder, _ := ianaindex.MIME.Encoding(charset)
+
+		if encoder == nil {
+			return "(removed text: non supported encoder)"
+		}
+	}
+
+	return s
 }
 
 func decodeHeaderMime(header mail.Header) (mail.Header, error) {
@@ -364,7 +463,7 @@ func decodeHeaderMime(header mail.Header) (mail.Header, error) {
 }
 
 func isEmbeddedFile(part *multipart.Part) bool {
-	return part.Header.Get("Content-Transfer-Encoding") != "" || part.Header.Get("Content-Disposition")[0:17] == "inline; filename="
+	return part.Header.Get("Content-Transfer-Encoding") != "" || strings.HasPrefix(part.Header.Get("Content-Disposition"), "inline; filename=")
 }
 
 func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
@@ -399,21 +498,6 @@ func decodeEmbeddedFile(part *multipart.Part) (ef EmbeddedFile, err error) {
 
 // Everything that is not html or plain is treated as an attachment.
 func isAttachment(part *multipart.Part) bool {
-	contentType := part.Header.Get("Content-Type")
-	if strings.Contains(contentType, ";") {
-		contentType = strings.SplitN(contentType, ";", 2)[0]
-	}
-
-	if contentType != "text/html" &&
-		contentType != "text/plain" &&
-		isAttachmentByContentDisposition(part) {
-		return true
-	}
-
-	return false
-}
-
-func isAttachmentByContentDisposition(part *multipart.Part) bool {
 	if part.Header.Get("Content-Disposition") != "" {
 		contentDisposition, _, err := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
 		if err != nil {
@@ -462,7 +546,9 @@ func readAllDecode(content io.Reader, encoding, contentType string) ([]byte, err
 	}
 
 	cr, err := cs.NewReader(r, contentType)
-	if err != nil {
+	if err == io.EOF {
+		return []byte{}, nil
+	} else if err != nil {
 		return nil, err
 	}
 
@@ -506,13 +592,33 @@ type headerParser struct {
 	err    error
 }
 
+// This is needed because the default address parser only understands utf-8, iso-8859-1, and us-ascii.
+var mimeWordDecoder = &mime.WordDecoder{
+	CharsetReader: func(charset string, input io.Reader) (io.Reader, error) {
+		enc, err := ianaindex.MIME.Encoding(charset)
+		if err != nil {
+			return nil, err
+		}
+
+		if enc == nil {
+			return nil, fmt.Errorf("invalid encoding for charset %s", charset)
+		}
+
+		return transform.NewReader(input, enc.NewDecoder()), nil
+	},
+}
+
+var addressParser = mail.AddressParser{
+	WordDecoder: mimeWordDecoder,
+}
+
 func (hp headerParser) parseAddress(s string) (ma *mail.Address) {
 	if hp.err != nil {
 		return nil
 	}
 
 	if strings.Trim(s, " \n") != "" {
-		ma, hp.err = mail.ParseAddress(s)
+		ma, hp.err = addressParser.Parse(removeUnsupportedEncodingForAddress(s))
 
 		return ma
 	}
@@ -526,7 +632,7 @@ func (hp headerParser) parseAddressList(s string) (ma []*mail.Address) {
 	}
 
 	if strings.Trim(s, " \n") != "" {
-		ma, hp.err = mail.ParseAddressList(s)
+		ma, hp.err = addressParser.ParseList(removeUnsupportedEncodingForAddressList(s))
 		return
 	}
 

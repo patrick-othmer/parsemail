@@ -1,5 +1,8 @@
-module github.com/patrick-othmer/parsemail
+module github.com/on2itsecurity/parsemail
 
-go 1.12
+go 1.21
 
-require golang.org/x/net v0.0.0-20200927032502-5d4f70055728
+require (
+	golang.org/x/net v0.15.0
+	golang.org/x/text v0.13.0
+)
